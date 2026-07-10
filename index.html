@@ -21,15 +21,21 @@ html{scroll-behavior:smooth;}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;}
 
 /* ── NAV ── */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 6%;transition:background .3s,border-bottom .3s;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 5%;gap:8px;transition:background .3s,border-bottom .3s;}
 nav.scrolled{background:rgba(7,14,26,.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);}
-.nav-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:19px;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px;letter-spacing:-.01em;}
+.nav-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:7px;letter-spacing:-.01em;white-space:nowrap;}
 .nav-logo span{color:var(--teal);}
-.nav-right{display:flex;align-items:center;gap:12px;}
-.btn-ghost{color:var(--text2);font-size:14px;font-weight:500;text-decoration:none;padding:8px 16px;border-radius:8px;transition:color .2s;}
+.nav-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.btn-ghost{color:var(--text2);font-size:14px;font-weight:500;text-decoration:none;padding:8px 14px;border-radius:8px;transition:color .2s;white-space:nowrap;}
 .btn-ghost:hover{color:var(--text);}
-.btn-nav{background:var(--teal);color:#fff;font-size:14px;font-weight:600;padding:9px 20px;border-radius:8px;text-decoration:none;transition:opacity .2s;}
+.btn-nav{background:var(--teal);color:#fff;font-size:14px;font-weight:600;padding:9px 18px;border-radius:8px;text-decoration:none;transition:opacity .2s;white-space:nowrap;}
 .btn-nav:hover{opacity:.88;}
+@media(max-width:480px){
+  nav{padding:13px 4%;}
+  .nav-logo{font-size:15px;gap:5px;}
+  .btn-ghost{display:none;}
+  .btn-nav{font-size:13px;padding:8px 14px;}
+}
 
 /* ── HERO ── */
 .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:130px 6% 80px;position:relative;overflow:hidden;text-align:center;}
@@ -223,7 +229,7 @@ footer{background:#040810;border-top:1px solid var(--border);padding:36px 6%;dis
   .mtiles{grid-template-columns:repeat(2,1fr);}
 }
 @media(max-width:640px){
-  nav{padding:14px 5%;}
+  nav{padding:14px 4%;}
   .wrap{padding:64px 5%;}
   .hero{padding:100px 5% 60px;}
   .how-steps{grid-template-columns:1fr;}
