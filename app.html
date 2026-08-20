@@ -3910,7 +3910,7 @@
       });
 
       // Planned anchor-date items (unconfirmed scheduled)
-      const confKeys=new Set(mTxs.filter(t=>t.budget_item_id).map(t=>t.budget_item_id+'_'+t.date));
+      const confKeys=new Set(mTxs.filter(t=>t.budget_item_id).map(t=>t.budget_item_id+'_'(t.expected_date||t.date)));
       const planByDate={};
       (itemsRes.data||[]).forEach(item=>{
         if(!item.anchor_date) return;
