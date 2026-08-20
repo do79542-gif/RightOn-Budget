@@ -3838,7 +3838,7 @@
           .select('id,name,type,starting_balance,as_of_date,balance_updated_at')
           .eq('household',activeHousehold.id),
         supabaseClient.from('transactions')
-          .select('id,name,amount,date,type,account_id,budget_item_id')
+          .select('id,name,amount,date,type,account_id,budget_item_id,expected_date')
           .eq('household',activeHousehold.id)
           .gte('date',mStart).lte('date',mEnd)
           .order('date',{ascending:true}),
@@ -4076,8 +4076,21 @@
       const tomorrowStr2=tomorrow2.toISOString().split('T')[0];
       const balanceManuallySet=accounts.some(a=>a.as_of_date>=tomorrowStr2);
 
+    // Today's confirmed liquid transactions are already inside curLiquid, but the
+      // daily roll re-applies them on today's cell — back them out so today's
+      // OPENING balance is correct and nothing is double-counted.
+      let todayConfEffect=0;
+      (acctTxRes.data||[]).forEach(t=>{
+        const acct=accounts.find(a=>a.id===t.account_id);
+        if(!acct) return;
+        if(!txCountsForBalance(t,acct)) return;
+        if(t.date!==today) return;
+        todayConfEffect+=Number(t.amount||0)*(t.type==='income'?1:-1);
+      });
+
       // Build daily balance — past days are context only (no balance chain)
       let run=startBal;
+      if(isCurrentMonth && !balanceManuallySet) run-=todayConfEffect;
       const days={};
       for(let d=1;d<=lastDay;d++){
         const ds=y+'-'+p(m+1)+'-'+p(d);
@@ -4088,10 +4101,12 @@
         if(isPast){
           // Past: show transactions as historical context, no balance calculation
           days[ds]={open:null,close:null,conf,plan:[],isPast:true};
-        } else if(ds===today && balanceManuallySet){
-          // Today with manual balance: entered value IS the closing — don't apply transactions
-          days[ds]={open:run,close:run,conf,plan,isPast:false};
-          // run stays at curLiquid — tomorrow opens from the entered value
+          } else if(ds===today && balanceManuallySet){
+          // Today with manual balance: entered value IS the closing — don't apply transactions.
+          // Anything confirmed AFTER the balance was set is already inside `run`,
+          // so back it out of the OPENING figure only.
+          days[ds]={open:run-todayConfEffect,close:run,conf,plan,isPast:false};
+          // run stays — tomorrow opens from the entered value
         } else {
           // Today (no manual set) and future: roll balance forward
           const open=run;
