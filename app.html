@@ -1225,7 +1225,7 @@
       <div class="tx-action-row">
         <button type="button" class="tx-action-btn" id="varToggleBtn" onclick="toggleTxPanel('var')">
           <span class="tx-action-icon">＋</span>
-          <span>Insert variable spending transaction</span>
+          <span>Insert variable income / spending transaction</span>
         </button>
         <button type="button" class="tx-action-btn" id="transferToggleBtn" onclick="toggleTxPanel('transfer')">
           <span class="tx-action-icon">⇄</span>
@@ -1233,7 +1233,7 @@
         </button>
       </div>
       <div id="varSection" class="tx-section-body collapsed" style="max-height:600px;">
-        <p class="sub" style="font-size:12px;margin:8px 0 10px;">Log ongoing categories quickly. Selecting a category shows this month's running total.</p>
+        <p class="sub" style="font-size:12px;margin:8px 0 10px;">Log income or spending against any category. Selecting one shows this month's running total.</p>
         <div class="tx-manual">
           <div id="varReceiptBanner"></div>
           <label>Category</label>
@@ -1244,7 +1244,7 @@
             <div class="empty-state" style="padding:16px 0;">
               <div class="es-icon">🗂️</div>
               <div class="es-title">No expense categories yet</div>
-              <div class="es-sub">Add expenses in Setup first, then log spending here.</div>
+              <div class="es-sub">Add income or expenses in Setup first, then log transactions here.</div>
               <button onclick="sidebarNav('setup')" style="font-size:12px;padding:6px 14px;">Go to Setup →</button>
             </div>
           </div>
@@ -5402,7 +5402,7 @@
       const {data}=await supabaseClient.from('budget_items')
         .select('id,name,type,account_id')
         .eq('household',activeHousehold.id)
-        .in('type',['expense'])
+        .in('type',['income','expense'])
         .order('name',{ascending:true});
       bucketItems=data||[];
       const catEl=document.getElementById('varCategory');
