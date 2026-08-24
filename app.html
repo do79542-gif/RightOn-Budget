@@ -1225,7 +1225,7 @@
       <div class="tx-action-row">
         <button type="button" class="tx-action-btn" id="varToggleBtn" onclick="toggleTxPanel('var')">
           <span class="tx-action-icon">＋</span>
-          <span>Insert variable income / spending transaction</span>
+          <span>Insert variable spending transaction</span>
         </button>
         <button type="button" class="tx-action-btn" id="transferToggleBtn" onclick="toggleTxPanel('transfer')">
           <span class="tx-action-icon">⇄</span>
@@ -1233,7 +1233,7 @@
         </button>
       </div>
       <div id="varSection" class="tx-section-body collapsed" style="max-height:600px;">
-        <p class="sub" style="font-size:12px;margin:8px 0 10px;">Log income or spending against any category. Selecting one shows this month's running total.</p>
+        <p class="sub" style="font-size:12px;margin:8px 0 10px;">Log ongoing categories quickly. Selecting a category shows this month's running total.</p>
         <div class="tx-manual">
           <div id="varReceiptBanner"></div>
           <label>Category</label>
@@ -1244,7 +1244,7 @@
             <div class="empty-state" style="padding:16px 0;">
               <div class="es-icon">🗂️</div>
               <div class="es-title">No expense categories yet</div>
-              <div class="es-sub">Add income or expenses in Setup first, then log transactions here.</div>
+              <div class="es-sub">Add expenses in Setup first, then log spending here.</div>
               <button onclick="sidebarNav('setup')" style="font-size:12px;padding:6px 14px;">Go to Setup →</button>
             </div>
           </div>
@@ -3838,7 +3838,7 @@
           .select('id,name,type,starting_balance,as_of_date,balance_updated_at')
           .eq('household',activeHousehold.id),
         supabaseClient.from('transactions')
-          .select('id,name,amount,date,type,account_id,budget_item_id,expected_date')
+          .select('id,name,amount,date,type,account_id,budget_item_id')
           .eq('household',activeHousehold.id)
           .gte('date',mStart).lte('date',mEnd)
           .order('date',{ascending:true}),
@@ -3910,7 +3910,7 @@
       });
 
       // Planned anchor-date items (unconfirmed scheduled)
-      const confKeys=new Set(mTxs.filter(t=>t.budget_item_id).map(t=>t.budget_item_id+'_'(t.expected_date||t.date)));
+      const confKeys=new Set(mTxs.filter(t=>t.budget_item_id).map(t=>t.budget_item_id+'_'+t.date));
       const planByDate={};
       (itemsRes.data||[]).forEach(item=>{
         if(!item.anchor_date) return;
@@ -4076,21 +4076,8 @@
       const tomorrowStr2=tomorrow2.toISOString().split('T')[0];
       const balanceManuallySet=accounts.some(a=>a.as_of_date>=tomorrowStr2);
 
-    // Today's confirmed liquid transactions are already inside curLiquid, but the
-      // daily roll re-applies them on today's cell — back them out so today's
-      // OPENING balance is correct and nothing is double-counted.
-      let todayConfEffect=0;
-      (acctTxRes.data||[]).forEach(t=>{
-        const acct=accounts.find(a=>a.id===t.account_id);
-        if(!acct) return;
-        if(!txCountsForBalance(t,acct)) return;
-        if(t.date!==today) return;
-        todayConfEffect+=Number(t.amount||0)*(t.type==='income'?1:-1);
-      });
-
       // Build daily balance — past days are context only (no balance chain)
       let run=startBal;
-      if(isCurrentMonth && !balanceManuallySet) run-=todayConfEffect;
       const days={};
       for(let d=1;d<=lastDay;d++){
         const ds=y+'-'+p(m+1)+'-'+p(d);
@@ -4101,12 +4088,10 @@
         if(isPast){
           // Past: show transactions as historical context, no balance calculation
           days[ds]={open:null,close:null,conf,plan:[],isPast:true};
-          } else if(ds===today && balanceManuallySet){
-          // Today with manual balance: entered value IS the closing — don't apply transactions.
-          // Anything confirmed AFTER the balance was set is already inside `run`,
-          // so back it out of the OPENING figure only.
-          days[ds]={open:run-todayConfEffect,close:run,conf,plan,isPast:false};
-          // run stays — tomorrow opens from the entered value
+        } else if(ds===today && balanceManuallySet){
+          // Today with manual balance: entered value IS the closing — don't apply transactions
+          days[ds]={open:run,close:run,conf,plan,isPast:false};
+          // run stays at curLiquid — tomorrow opens from the entered value
         } else {
           // Today (no manual set) and future: roll balance forward
           const open=run;
@@ -5402,7 +5387,7 @@
       const {data}=await supabaseClient.from('budget_items')
         .select('id,name,type,account_id')
         .eq('household',activeHousehold.id)
-        .in('type',['income','expense'])
+        .in('type',['expense'])
         .order('name',{ascending:true});
       bucketItems=data||[];
       const catEl=document.getElementById('varCategory');
