@@ -4077,7 +4077,21 @@
       const balanceManuallySet=accounts.some(a=>a.as_of_date>=tomorrowStr2);
 
       // Build daily balance — past days are context only (no balance chain)
+      // Today's confirmed liquid transactions are already inside curLiquid, but the
+      // daily roll re-applies them on today's cell — back them out so today's
+      // OPENING balance is correct and nothing is double-counted.
+      let todayConfEffect=0;
+      (acctTxRes.data||[]).forEach(t=>{
+        const acct=accounts.find(a=>a.id===t.account_id);
+        if(!acct) return;
+        if(!txCountsForBalance(t,acct)) return;
+        if(t.date!==today) return;
+        todayConfEffect+=Number(t.amount||0)*(t.type==='income'?1:-1);
+      });
+
+      // Build daily balance — past days are context only (no balance chain)
       let run=startBal;
+      if(isCurrentMonth && !balanceManuallySet) run-=todayConfEffect;
       const days={};
       for(let d=1;d<=lastDay;d++){
         const ds=y+'-'+p(m+1)+'-'+p(d);
