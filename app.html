@@ -4103,9 +4103,11 @@
           // Past: show transactions as historical context, no balance calculation
           days[ds]={open:null,close:null,conf,plan:[],isPast:true};
         } else if(ds===today && balanceManuallySet){
-          // Today with manual balance: entered value IS the closing — don't apply transactions
-          days[ds]={open:run,close:run,conf,plan,isPast:false};
-          // run stays at curLiquid — tomorrow opens from the entered value
+          // Today with manual balance: entered value IS the closing — don't apply transactions.
+          // Anything confirmed AFTER the balance was set is already inside `run`,
+          // so back it out of the OPENING figure only.
+          days[ds]={open:run-todayConfEffect,close:run,conf,plan,isPast:false};
+          // run stays — tomorrow opens from the entered value
         } else {
           // Today (no manual set) and future: roll balance forward
           const open=run;
