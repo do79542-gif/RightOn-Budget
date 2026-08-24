@@ -1225,7 +1225,7 @@
       <div class="tx-action-row">
         <button type="button" class="tx-action-btn" id="varToggleBtn" onclick="toggleTxPanel('var')">
           <span class="tx-action-icon">＋</span>
-          <span>Insert variable spending transaction</span>
+          <span>Insert variable income / spending transaction</span>
         </button>
         <button type="button" class="tx-action-btn" id="transferToggleBtn" onclick="toggleTxPanel('transfer')">
           <span class="tx-action-icon">⇄</span>
@@ -5403,7 +5403,7 @@
       const {data}=await supabaseClient.from('budget_items')
         .select('id,name,type,account_id')
         .eq('household',activeHousehold.id)
-        .in('type',['expense'])
+        .in('type',['income','expense'])
         .order('name',{ascending:true});
       bucketItems=data||[];
       const catEl=document.getElementById('varCategory');
