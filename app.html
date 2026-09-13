@@ -1973,8 +1973,8 @@
       try{
         const r=new Function('return ('+raw+')')();
         out.textContent=(typeof r==='number'&&isFinite(r))
-  ? '= '+(r<0?'-$':'$')+(Math.round(Math.abs(r)*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})
-  : '';
+          ? '= '+(r<0?'-$':'$')+(Math.round(Math.abs(r)*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})
+          : '';
       }catch(e){ out.textContent=''; }
     }
 
@@ -1989,7 +1989,7 @@
       try{
         const result=new Function('return ('+raw+')')();
         if(typeof result==='number'&&isFinite(result))
-      el.value=Math.round(result*100)/100;
+          el.value=Math.round(result*100)/100;
       } catch(e){}
     }
 
@@ -3504,8 +3504,15 @@
     function calcAmount(item, yr, mo){
       const amt=effectiveAmount(item, yr, mo);
       if(!amt) return 0;
-      if(item.anchor_date && item.frequency!=='monthly')
+      if(item.anchor_date){
+        if(item.frequency==='monthly'){
+          const anchor=new Date(item.anchor_date+'T12:00:00');
+          const anchorKey=anchor.getFullYear()*12+anchor.getMonth();
+          const key=yr*12+mo;
+          return key>=anchorKey ? amt : 0; // don't count before its anchor month
+        }
         return amt*paymentsInMonth(item.anchor_date,item.frequency,yr,mo);
+      }
       return toMonthly(amt, item.frequency||'monthly');
     }
 
@@ -3785,7 +3792,8 @@
       if(item.frequency==='monthly'){
         let day=new Date(item.anchor_date+'T12:00:00').getDate();
         day=Math.min(day,lastDay);
-        return [year+'-'+p(month+1)+'-'+p(day)];
+        const ds=year+'-'+p(month+1)+'-'+p(day);
+        return ds>=item.anchor_date ? [ds] : []; // don't appear before its anchor month
       }
       if(item.frequency==='yearly'){
         const anchor=new Date(item.anchor_date+'T12:00:00');
@@ -4150,10 +4158,10 @@
           const col=t.type==='income'?'#8fe3a8':t.type==='savings'?'#5fb8b8':(t.isCCPayment?'#f0c070':'#f0b0a0');
           const op=t.planned?'opacity:0.55;':'';
           const dimPast=day.isPast?'opacity:0.5;':'';
-          const netVal=(t.type==='income'?1:-1)*Number(t.amount||0);
-		  const sign=netVal<0?'-':'+';
-		  const nm=t.name.length>14?t.name.slice(0,13)+'…':t.name;
-		  const amt='$'+Math.round(Math.abs(netVal)).toLocaleString();
+          const netVal2=(t.type==='income'?1:-1)*Number(t.amount||0);
+          const sign=netVal2<0?'-':'+';
+          const nm=t.name.length>14?t.name.slice(0,13)+'…':t.name;
+          const amt='$'+Math.round(Math.abs(netVal2)).toLocaleString();
           if(t.isCCPayment){
             const deferMark=t.deferred?' ⏱':'';
             return '<div class="cal-tx cc-pay" style="color:'+col+';'+op+dimPast+'" '+
@@ -4701,7 +4709,7 @@
         let day=new Date(item.anchor_date+'T12:00:00').getDate();
         day=Math.min(day,lastDay);
         const ds=y+'-'+pad2(m+1)+'-'+pad2(day);
-        return ds<=today ? [ds] : [];
+        return (ds<=today && ds>=item.anchor_date) ? [ds] : [];
       }
 
       // Has anchor_date, weekly / biweekly → generate all occurrences up to today
@@ -5104,7 +5112,6 @@
       let q=supabaseClient.from('transactions')
         .select('id,name,amount,date,type,description,account_id,receipt_path')
         .eq('household',activeHousehold.id)
-        .lte('date',todayStr)
         .order('date',{ascending:false})
         .limit(100);
       if(filter==='none') q=q.is('account_id',null);
@@ -5457,14 +5464,15 @@
       const {data}=await supabaseClient.from('transactions')
         .select('amount').eq('household',activeHousehold.id)
         .eq('budget_item_id',itemId).gte('date',start).lte('date',end);
-    const total=(data||[]).reduce((s,t)=>s+Number(t.amount||0),0);
-if(total!==0){
-  totalEl.textContent=(total<0?'-$':'$')+Math.abs(total).toLocaleString(undefined,{maximumFractionDigits:0})+' logged this month';
-  totalEl.style.color='#5fb8b8';
-} else {
-  totalEl.textContent='Nothing logged yet this month';
-  totalEl.style.color='#7d93ac';
-}
+      const total=(data||[]).reduce((s,t)=>s+Number(t.amount||0),0);
+      if(total!==0){
+        totalEl.textContent=(total<0?'-$':'$')+Math.abs(total).toLocaleString(undefined,{maximumFractionDigits:0})+' logged this month';
+        totalEl.style.color='#5fb8b8';
+      } else {
+        totalEl.textContent='Nothing logged yet this month';
+        totalEl.style.color='#7d93ac';
+      }
+    }
 
     async function addVarSpend(){
       const itemId=parseInt(document.getElementById('varCategory').value);
