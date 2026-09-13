@@ -1972,9 +1972,9 @@
       if(!raw||!/[\+\-\*\/]/.test(raw)||!/^[\d\s\.\+\-\*\/\(\)]+$/.test(raw)){ out.textContent=''; return; }
       try{
         const r=new Function('return ('+raw+')')();
-        out.textContent=(typeof r==='number'&&isFinite(r)&&r>=0)
-          ? '= $'+(Math.round(r*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})
-          : '';
+        out.textContent=(typeof r==='number'&&isFinite(r))
+  ? '= '+(r<0?'-$':'$')+(Math.round(Math.abs(r)*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})
+  : '';
       }catch(e){ out.textContent=''; }
     }
 
@@ -1988,8 +1988,8 @@
       if(!/^[\d\s\.\+\-\*\/\(\)]+$/.test(raw)) return; // safe chars only
       try{
         const result=new Function('return ('+raw+')')();
-        if(typeof result==='number'&&isFinite(result)&&result>=0)
-          el.value=Math.round(result*100)/100;
+        if(typeof result==='number'&&isFinite(result))
+      el.value=Math.round(result*100)/100;
       } catch(e){}
     }
 
@@ -4150,9 +4150,10 @@
           const col=t.type==='income'?'#8fe3a8':t.type==='savings'?'#5fb8b8':(t.isCCPayment?'#f0c070':'#f0b0a0');
           const op=t.planned?'opacity:0.55;':'';
           const dimPast=day.isPast?'opacity:0.5;':'';
-          const sign=t.type==='income'?'+':'-';
-          const nm=t.name.length>14?t.name.slice(0,13)+'…':t.name;
-          const amt='$'+Math.round(Number(t.amount||0)).toLocaleString();
+          const netVal=(t.type==='income'?1:-1)*Number(t.amount||0);
+		  const sign=netVal<0?'-':'+';
+		  const nm=t.name.length>14?t.name.slice(0,13)+'…':t.name;
+		  const amt='$'+Math.round(Math.abs(netVal)).toLocaleString();
           if(t.isCCPayment){
             const deferMark=t.deferred?' ⏱':'';
             return '<div class="cal-tx cc-pay" style="color:'+col+';'+op+dimPast+'" '+
@@ -5152,7 +5153,8 @@
           '<div id="'+bodyId+'" class="'+(isToday?'':'tx-section-body collapsed')+'" style="max-height:2000px;">'+
             txs.map(t=>{
               const color=t.type==='income'?'#8fe3a8':t.type==='savings'?'#5fb8b8':'#f0b0a0';
-              const sign=t.type==='income'?'+':'-';
+              const netVal=(t.type==='income'?1:-1)*Number(t.amount||0);
+              const sign=netVal<0?'-':'+';
               const acct=t.account_id?(cachedAccounts||[]).find(a=>a.id===t.account_id):null;
               const acctLabel=acct?' · '+acct.name:'';
               const safeName=t.name.replace(/'/g,"\\'");
@@ -5163,7 +5165,7 @@
                   '</div>'+
                 '</div>'+
                 '<div style="display:flex;align-items:center;gap:10px;">'+
-                  '<span style="color:'+color+';font-weight:600;">'+sign+'$'+Number(t.amount||0).toLocaleString()+'</span>'+
+                  '<span style="color:'+color+';font-weight:600;">'+sign+'$'+Math.abs(netVal).toLocaleString()+'</span>'+
                   (t.receipt_path?'<button class="iconbtn" onclick="viewReceipt(\''+encodeURIComponent(t.receipt_path)+'\')" title="View receipt">📎 View</button>':'')+
                   '<button class="iconbtn del" onclick="deleteTx('+t.id+',\''+safeName+'\')" title="Delete">✕</button>'+
                 '</div>'+
@@ -5455,19 +5457,21 @@
       const {data}=await supabaseClient.from('transactions')
         .select('amount').eq('household',activeHousehold.id)
         .eq('budget_item_id',itemId).gte('date',start).lte('date',end);
-      const total=(data||[]).reduce((s,t)=>s+Number(t.amount||0),0);
-      totalEl.textContent=total>0
-        ?'$'+total.toLocaleString(undefined,{maximumFractionDigits:0})+' logged this month'
-        :'Nothing logged yet this month';
-      totalEl.style.color=total>0?'#5fb8b8':'#7d93ac';
-    }
+    const total=(data||[]).reduce((s,t)=>s+Number(t.amount||0),0);
+if(total!==0){
+  totalEl.textContent=(total<0?'-$':'$')+Math.abs(total).toLocaleString(undefined,{maximumFractionDigits:0})+' logged this month';
+  totalEl.style.color='#5fb8b8';
+} else {
+  totalEl.textContent='Nothing logged yet this month';
+  totalEl.style.color='#7d93ac';
+}
 
     async function addVarSpend(){
       const itemId=parseInt(document.getElementById('varCategory').value);
       const item=bucketItems.find(i=>i.id===itemId);
       if(!item){ showMessage('Please select a category.','err'); return; }
       const amount=parseFloat(document.getElementById('varAmount').value);
-      if(!amount||amount<=0){ showMessage('Please enter an amount.','err'); return; }
+      if(isNaN(amount)||amount===0){ showMessage('Please enter an amount (use a minus sign for a refund/return).','err'); return; }
       const desc=document.getElementById('varDesc').value.trim()||null;
       const dateVal=document.getElementById('varDate').value||new Date().toISOString().split('T')[0];
       const acctVal=document.getElementById('varAccount').value;
